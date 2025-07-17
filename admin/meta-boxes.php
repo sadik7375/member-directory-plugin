@@ -1,6 +1,10 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+
+
+// Add meta field for member 
+
 add_action( 'add_meta_boxes', 'md_add_member_meta_boxes' );
 function md_add_member_meta_boxes() {
     add_meta_box('md_member_details', 'Member Details', 'md_render_member_meta_box', 'member', 'normal', 'high');
@@ -62,6 +66,37 @@ function md_render_member_meta_box($post) {
         <input type="color" name="md_color" value="<?= esc_attr($fields['color']) ?>">
     </p>
 
+
+<p><label><strong>Assign Teams</strong></label></p>
+<div style="margin-bottom: 10px;">
+    <?php
+    $teams = get_posts([
+        'post_type' => 'team',
+        'posts_per_page' => -1,
+        'post_status' => 'publish',
+        'orderby' => 'title',
+        'order' => 'ASC',
+    ]);
+
+    $selected_teams = get_post_meta($post->ID, 'md_teams', true);
+    $selected_teams = is_array($selected_teams) ? $selected_teams : [];
+
+    if (!empty($teams)) {
+        foreach ($teams as $team) {
+            $checked = in_array($team->ID, $selected_teams) ? 'checked' : '';
+            echo '<label style="display: block; margin-bottom: 4px;">';
+            echo '<input type="checkbox" name="md_teams[]" value="' . esc_attr($team->ID) . '" ' . $checked . '> ';
+            echo esc_html($team->post_title);
+            echo '</label>';
+        }
+    } else {
+        echo '<p><em>No teams found.</em></p>';
+    }
+    ?>
+</div>
+
+
+
     <p>
         <label><strong>Status</strong></label><br>
         <select name="md_status">
@@ -92,6 +127,14 @@ function md_save_member_meta_fields($post_id) {
     if ( ! isset($_POST['md_member_nonce']) || ! wp_verify_nonce($_POST['md_member_nonce'], 'md_save_member_fields') ) return;
     if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return;
 
+
+    $email = sanitize_email($_POST['md_email']);
+
+if (!md_is_email_unique($email, $post_id)) {
+    wp_die('Error: A member with this email already exists. Please use a unique email address.');
+}
+
+
     $email = sanitize_email($_POST['md_email']);
     $existing = new WP_Query([
         'post_type' => 'member',
@@ -119,4 +162,50 @@ function md_save_member_meta_fields($post_id) {
     foreach ($fields as $key => $val) {
         update_post_meta($post_id, 'md_' . $key, $val);
     }
+}
+
+
+
+
+
+
+
+//Add meta box for team memmber
+
+
+// Add Team Meta Box
+add_action( 'add_meta_boxes', 'md_add_team_meta_box' );
+function md_add_team_meta_box() {
+    add_meta_box('md_team_details', 'Team Details', 'md_render_team_meta_box', 'team', 'normal', 'high');
+}
+
+
+add_filter('enter_title_here', 'md_custom_team_title_placeholder');
+function md_custom_team_title_placeholder($title) {
+    $screen = get_current_screen();
+    if ( 'team' === $screen->post_type ) {
+        $title = 'Enter Team Name';
+    }
+    return $title;
+}
+
+
+
+function md_render_team_meta_box($post) {
+    $short_description = get_post_meta($post->ID, 'md_team_short_description', true);
+    wp_nonce_field('md_save_team_fields', 'md_team_nonce');
+    ?>
+    <p>
+        <label><strong>Short Description</strong></label><br>
+        <textarea name="md_team_short_description" style="width: 100%;"><?= esc_textarea($short_description) ?></textarea>
+    </p>
+    <?php
+}
+
+add_action( 'save_post_team', 'md_save_team_meta_fields' );
+function md_save_team_meta_fields($post_id) {
+    if ( ! isset($_POST['md_team_nonce']) || ! wp_verify_nonce($_POST['md_team_nonce'], 'md_save_team_fields') ) return;
+    if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return;
+
+    update_post_meta($post_id, 'md_team_short_description', sanitize_textarea_field($_POST['md_team_short_description']));
 }
