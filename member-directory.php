@@ -121,6 +121,9 @@ function md_handle_add_member_form() {
     update_post_meta($member_id, 'md_color', sanitize_hex_color($_POST['color']));
     update_post_meta($member_id, 'md_status', sanitize_text_field($_POST['status']));
     update_post_meta($member_id, 'md_teams', array_map('intval', $_POST['teams'] ?? []));
+    update_post_meta($post_id, 'md_profile_image_id', intval($_POST['profile_image_id']));
+update_post_meta($post_id, 'md_cover_image_id', intval($_POST['cover_image_id']));
+
   }
 
   wp_redirect(admin_url('admin.php?page=md_members'));
@@ -191,9 +194,22 @@ function md_delete_team() {
 }
 
 
+
+
+add_action('admin_enqueue_scripts', 'md_enqueue_admin_scripts');
+function md_enqueue_admin_scripts($hook) {
+    // Only enqueue on our custom plugin pages
+    if (isset($_GET['page']) && in_array($_GET['page'], ['md_add_member', 'md_add_team', 'md_edit_member', 'md_edit_team'])) {
+        wp_enqueue_media(); // This enables media uploader
+    }
+}
+
+
 // ---------------------------------------------
 // 5. Load Meta Boxes (Optional, if using them)
 // ---------------------------------------------
 require_once plugin_dir_path(__FILE__) . 'admin/meta-boxes.php';
+
+require_once plugin_dir_path(__FILE__) . 'admin/shortcodes.php';
 
 require_once plugin_dir_path(__FILE__) . 'admin/utils.php';

@@ -13,6 +13,9 @@ $values = [
   'teams' => [],
 ];
 
+$profile_image_id = '';
+$cover_image_id = '';
+
 // If editing, load values from post meta
 if ($is_edit && get_post_type($member_id) === 'member') {
   foreach ($values as $key => $default) {
@@ -22,6 +25,8 @@ if ($is_edit && get_post_type($member_id) === 'member') {
       $values[$key] = get_post_meta($member_id, 'md_' . $key, true) ?: $default;
     }
   }
+  $profile_image_id = get_post_meta($member_id, 'md_profile_image_id', true);
+  $cover_image_id   = get_post_meta($member_id, 'md_cover_image_id', true);
 }
 ?>
 
@@ -65,6 +70,24 @@ if ($is_edit && get_post_type($member_id) === 'member') {
           </select>
         </td>
       </tr>
+      <tr>
+        <th><label>Profile Image</label></th>
+        <td>
+          <?php $profile_url = $profile_image_id ? wp_get_attachment_url($profile_image_id) : ''; ?>
+          <input type="hidden" name="profile_image_id" id="profile_image_id" value="<?php echo esc_attr($profile_image_id); ?>">
+          <img id="profile_image_preview" src="<?php echo esc_url($profile_url); ?>" style="max-width: 150px; display:block; margin-bottom:10px;">
+          <button type="button" class="button" onclick="uploadMedia('profile_image_id', 'profile_image_preview')">Select Profile Image</button>
+        </td>
+      </tr>
+      <tr>
+        <th><label>Cover Image</label></th>
+        <td>
+          <?php $cover_url = $cover_image_id ? wp_get_attachment_url($cover_image_id) : ''; ?>
+          <input type="hidden" name="cover_image_id" id="cover_image_id" value="<?php echo esc_attr($cover_image_id); ?>">
+          <img id="cover_image_preview" src="<?php echo esc_url($cover_url); ?>" style="max-width: 100%; display:block; margin-bottom:10px;">
+          <button type="button" class="button" onclick="uploadMedia('cover_image_id', 'cover_image_preview')">Select Cover Image</button>
+        </td>
+      </tr>
     </table>
 
     <h2>Assign Teams</h2>
@@ -85,3 +108,18 @@ if ($is_edit && get_post_type($member_id) === 'member') {
     <p><input type="submit" class="button button-primary" value="<?php echo $is_edit ? 'Update Member' : 'Add Member'; ?>"></p>
   </form>
 </div>
+
+<!-- Media Uploader -->
+<script>
+function uploadMedia(inputId, previewId) {
+  const customUploader = wp.media({
+    title: 'Select Image',
+    button: { text: 'Use this image' },
+    multiple: false
+  }).on('select', function () {
+    const attachment = customUploader.state().get('selection').first().toJSON();
+    document.getElementById(inputId).value = attachment.id;
+    document.getElementById(previewId).src = attachment.url;
+  }).open();
+}
+</script>
